@@ -51,7 +51,7 @@ void write_log(int tid, int ttype, char* msg)
         perror("snprintf");
         exit(1);
     }
-    printf("%s\n",log_msg);
+    // printf("%s\n",log_msg);
 }
 
 /****************************************************************************
