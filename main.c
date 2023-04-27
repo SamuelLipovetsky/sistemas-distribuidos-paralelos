@@ -19,129 +19,115 @@ struct arg_struct
     int ttrio;
     trio_t *t_ptr;
 };
+
 void init_trio(trio_t t)
 {
-    t.a = 0;
-    t.b = 0;
-    t.c = 0;
-    t.finished =0;
-    pthread_mutex_init(&(t.vars), NULL);
-    pthread_cond_init(&(t.enter), NULL);
-    pthread_cond_init(&(t.can_start), NULL);
+    t.a = 0;                                 // representa threads do tipo 1
+    t.b = 0;                                 // tipo 2
+    t.c = 0;                                 // tipo 3
+    t.finished = 0;                          // controla se o trio aceita novas threads
+    pthread_mutex_init(&(t.vars), NULL);     // mutex de acesso as variaveis
+    pthread_cond_init(&(t.enter), NULL);     // condição que controla se threads podem entrar no trio
+    pthread_cond_init(&(t.can_start), NULL); // controla se threads em um trio podem começar
 };
-void trio_enter(trio_t* t, int my_type)
+void trio_enter(trio_t *t, int my_type)
 {
-    
+
     pthread_mutex_lock(&(t->vars));
+    printf("%d , %d %d %d  , %d \n",t->finished,t->a,t->b,t->c,my_type);
     if (my_type == 1)
     {
-           
-        // existe espaço para a entrar e o trio está aceitando novas threads
-        // o trio não aceita novas threads até todas as threads que já finalizaram sairem do trio
+
+        // espera até existir espaço para A entrar e o trio estar aceitando novas threads
+        // o trio não aceita novas threads até todas as threads  sairem do trio
+  
         while (t->finished == 1 || t->a == 1)
         {
-            // printf("%d espera finishado %d \n",my_type,t->finished);
+           
             pthread_cond_wait(&(t->enter), &(t->vars));
         }
-        pthread_cond_signal(&(t->enter));
      
-        t->a = 1;
-        // se as tres threads existem no trio , logo todas devem sair antes de alguem entrar
-       
-        while (t->a + t->b + t->c != 3)
-        {
-            // printf("%d espera  %d %d %d\n",my_type,t->a,t->b,t->c);
-            pthread_cond_wait(&(t->can_start),&(t->vars));
-        }
 
-       
-        t->finished=1;
-        pthread_cond_signal(&(t->can_start));
-        
+        t->a = 1;
     }
     if (my_type == 2)
     {
-       
+
         while (t->finished == 1 || t->b == 1)
         {
-        //    printf("%d espera finishado %d \n",my_type,t->finished);
-            pthread_cond_wait(&(t->enter), &(t->vars));
-        }
-        pthread_cond_signal(&(t->enter));
-       
-        t->b = 1;
+          
 
-        while (t->a + t->b + t->c != 3)
-        {
-            // printf("%d espera  %d %d %d\n",my_type,t->a,t->b,t->c);
-            pthread_cond_wait(&(t->can_start),&(t->vars));
-        }
-        
-        t->finished=1;
-        pthread_cond_signal(&(t->can_start));
-        
-    }   
-    if (my_type == 3)
-    {
-         
-        while (t->finished == 1 || t->c == 1)
-        {
-            //  printf("%d espera finishado %d \n",my_type,t->finished);
             pthread_cond_wait(&(t->enter), &(t->vars));
         }
       
-      pthread_cond_signal(&(t->enter));
-        t->c = 1;
 
-        while (t->a + t->b + t->c != 3)
-        {
-            // printf("%d espera  %d %d %d\n",my_type,t->a,t->b,t->c);
-            pthread_cond_wait(&(t->can_start),&(t->vars));
-        }
-        
-        t->finished=1;
-        pthread_cond_signal(&(t->can_start));
-        
+        t->b = 1;
     }
-    // printf("%d entrou \n",my_type);
-    
+    if (my_type == 3)
+    {
+
+        while (t->finished == 1 || t->c == 1)
+        {
+            
+            pthread_cond_wait(&(t->enter), &(t->vars));
+        }
+
+       
+        t->c = 1;
+    }
+   
+    // o trio está completo, as threads podem começar
+    while (t->a + t->b + t->c != 3)
+    {
+        pthread_cond_wait(&(t->can_start), &(t->vars));
+    }
+    // se as tres threads existem no trio , logo todas devem sair antes de alguem entrar
+    t->finished = 1;
+    pthread_cond_signal(&(t->can_start));
     pthread_mutex_unlock(&(t->vars));
 };
 void trio_leave(trio_t *t, int my_type)
 {
-    
-    // printf("\n \n \n \n \n \n %d \n \n \n \n ", my_type);
+
     pthread_mutex_lock(&(t->vars));
-    if (my_type==1){
-        t->a=0;
+    if (my_type == 1)
+    {
+        t->a = 0;
     }
-    if (my_type==2){
-        t->b=0;
+    if (my_type == 2)
+    {
+        t->b = 0;
     }
-    if (my_type==3){
-        t->c=0;
+    if (my_type == 3)
+    {
+        t->c = 0;
     }
-    // printf("%d saiu %d  \n",my_type,t->a+t->b+t->c);
-    //se todos sairem , o trio aceita nova threads.
-    if(t->a + t->b + t->c ==0){
-        t->finished=0;
-        // printf("liberado \n");
-        pthread_cond_signal(&(t->enter));
+
+    // se todos sairem , o trio aceita nova threads.
+    if (t->a + t->b + t->c == 0)
+    {
+        t->finished = 0;
+
+        pthread_cond_broadcast(&(t->enter));
+      
+        
     }
+   
     pthread_mutex_unlock(&(t->vars));
+   
 };
 
 void *routine(void *args)
 {
 
     struct arg_struct *arg = args;
- 
+
     int tid, ttype, tsolo, ttrio;
     tid = arg->tid;
     ttype = arg->ttype;
     tsolo = arg->tsolo;
-    ttrio =arg->ttrio;
-    
+    ttrio = arg->ttrio;
+
     spend_time(tid, ttype, "S", tsolo);
     trio_enter((arg->t_ptr), ttype);
     spend_time(tid, ttype, "T", ttrio);
@@ -181,7 +167,6 @@ int main()
         arg->tsolo = tsolo;
         arg->ttrio = ttrio;
         arg->t_ptr = &(t);
-        
 
         if (pthread_create(&th[n_line], NULL, &routine, arg) != 0)
         {
