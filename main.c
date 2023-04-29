@@ -51,7 +51,6 @@ void trio_enter(trio_t *t, int my_type)
             pthread_cond_wait(&(t->a_enter), &(t->vars));
         }
      
-
         t->a = 1;
     }
     if (my_type == 2)
@@ -64,7 +63,6 @@ void trio_enter(trio_t *t, int my_type)
             pthread_cond_wait(&(t->b_enter), &(t->vars));
         }
       
-
         t->b = 1;
     }
     if (my_type == 3)
@@ -76,7 +74,6 @@ void trio_enter(trio_t *t, int my_type)
             pthread_cond_wait(&(t->c_enter), &(t->vars));
         }
 
-       
         t->c = 1;
     }
    
@@ -152,15 +149,9 @@ int main()
     init_trio(t);
     clock_t begin = clock();
 
-/* here, do your time-consuming job */
-
-
-
     while (fgets(line, 100, stdin))
     {
         
-
-
         int tid, ttype, tsolo, ttrio;
 
         char *token = strtok(line, " ");
